@@ -8,8 +8,9 @@ class Grafo{
   late String composition;
   late bool check;
   late int? value;
+  late String? player;
 
-  Grafo(this.line, this.column, this.composition, this.check, [this.value]);
+  Grafo(this.line, this.column, this.composition, this.check, {this.value, this.player});
 }
 
 class GamePage extends StatefulWidget{
@@ -26,53 +27,9 @@ class _GamePageState extends State<GamePage>{
   late List<String> occupied;
 
   late List<List<Grafo>> graph = [];
-  static const int gameSize = 5;
+  late int gameSize;
 
   late var containerColumn;
-
-
-  var vertex = Container(
-    width: 20,
-    height: 20,
-    decoration: BoxDecoration(
-      color: Colors.black,
-      borderRadius: BorderRadius.circular(50),
-    ),
-  );
-
-  var edgeH = InkWell( 
-      onTap: (){
-        print("edgeH");
-      },
-      child: Container(
-      width: 45,
-      height: 45/6,
-      decoration: BoxDecoration(
-        color: Colors.black38,
-      ),
-    )
-  );
-
-  var edgeV = InkWell( 
-      onTap: (){
-        print("edgeV");
-      },
-      child: Container(
-      width: 45/6,
-      height: 45,
-      decoration: BoxDecoration(
-        color: Colors.black38,
-      ),
-    )
-  );
-
-  var square = Container(
-    width: 45,
-    height: 45,
-    decoration: BoxDecoration(
-      color: Colors.black87,
-    ),
-  );
 
   static const styleText = TextStyle(
               color: Colors.green,
@@ -87,6 +44,7 @@ class _GamePageState extends State<GamePage>{
   }
   void initializeGame(){
     currentPlayer = Player_1;
+    gameSize = 5;
     gameEnd = false;
     occupied = ["", "", "", "", "", "", "", "", ""]; //9 empty places
     assembleGraph(); //Montando o grafo do jogo
@@ -101,24 +59,23 @@ class _GamePageState extends State<GamePage>{
         if(i % 2 == 0){
           if(j % 2 == 0) {
             graph[i].add(Grafo(i, j, "vertex", true));
-            containerGraph[i].add(vertex);
+            containerGraph[i].add(_vertex());
           } else{
             graph[i].add(Grafo(i, j, "edgeH", false));
-            containerGraph[i].add(edgeH);
+            containerGraph[i].add(_edgeH(graph[i][j]));
           }
         }
         if(i % 2 == 1){
           if(j % 2 == 0) {
-            graph[i].add(Grafo(i, j, "edgeV", true));
-            containerGraph[i].add(edgeV);
+            graph[i].add(Grafo(i, j, "edgeV", false));
+            containerGraph[i].add(_edgeV(graph[i][j]));
           } else{
-            graph[i].add(Grafo(i, j, "square", false,  1 + Random().nextInt(3)));
-            containerGraph[i].add(square);
+            graph[i].add(Grafo(i, j, "square", false, value: 1 + Random().nextInt(3)));
+            containerGraph[i].add(_square(graph[i][j]));
           }
         }
       }
     }
-    
     containerColumn = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List<Widget>.generate(
@@ -141,6 +98,7 @@ class _GamePageState extends State<GamePage>{
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _headerText(),
+            _turn(),
             _gameContainer(),
           ]),
       )
@@ -158,6 +116,76 @@ class _GamePageState extends State<GamePage>{
         );
   }
 
+  Widget _turn(){
+    const textStyle = TextStyle( 
+                color: Colors.white,
+              );
+    var p1Container = Container( 
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(  
+        color: currentPlayer == Player_2 ? 
+        const Color.fromARGB(75, 68, 137, 255) : Colors.blue,
+        border: Border.all(
+          width: 5.0,
+          color: Colors.black12
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "Player 1",
+            style: textStyle,
+            ),
+            Text( 
+              "Pontos",
+              style: textStyle,
+            ),
+            Text( 
+              "0:0",
+              style: textStyle,
+            ),
+        ],
+      ),
+    );
+    var p2Container = Container( 
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(  
+        color: currentPlayer == Player_1 ? 
+        const Color.fromARGB(122, 255, 214, 64) : Colors.amber,
+        border: Border.all(
+          width: 5.0,
+          color: Colors.black12
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "Player 2",
+            style: textStyle,
+            ),
+            Text( 
+              "Pontos",
+              style: textStyle,
+            ),
+            Text( 
+              "0:0",
+              style: textStyle,
+            ),
+        ],
+      ),
+    );
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [p1Container, p2Container],
+    );
+  }
+
   Widget _gameContainer(){
     return Container(
       height: MediaQuery.of(context).size.height/2,
@@ -165,6 +193,129 @@ class _GamePageState extends State<GamePage>{
       margin: const EdgeInsets.all(8),
       child: containerColumn
       );
+  }
+
+  Widget _vertex(){
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(50),
+      ),
+    );
+  }
+
+  Widget _edgeH(Grafo e){
+    return InkWell( 
+        onTap: (){
+          setState(() {
+            if(!e.check && !gameEnd){
+              e.check = true;
+              checkSquareTopBot(e);
+              assembleGraph();
+              changeTurn();
+            }
+          });
+        },
+        child: Container(
+        width: 45,
+        height: 45/6,
+        decoration: BoxDecoration(
+          color: e.check? Colors.black87 : Colors.black12,
+        ),
+      )
+    );
+  }
+
+  Widget _edgeV(Grafo e){
+    return InkWell( 
+        onTap: (){
+          setState(() {
+            e.check = true;
+            checkSquareLeftRight(e);
+            assembleGraph();
+            changeTurn();
+          });
+        },
+        child: Container(
+        width: 45/6,
+        height: 45,
+        decoration: BoxDecoration(
+          color: e.check? Colors.black : Colors.black12,
+        ),
+      )
+    );
+  }
+
+  Widget _square(Grafo s){
+    return Container(
+      width: 45,
+      height: 45,
+      decoration: BoxDecoration(
+        color: !s.check? 
+        Colors.black87 : s.player == 'Player 1' ? 
+        Colors.blue : Colors.amber,
+      ),
+      child: Center(
+        child: Text(
+          '${s.value}',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20
+          ),
+        ),
+      ),
+    );
+  }
+
+  checkSquareTopBot(Grafo e){
+    print(e.line);
+    if(!(e.line - 1 < 0)){
+      if(graph[e.line][e.column].check && graph[e.line - 1][e.column - 1].check
+      && graph[e.line - 1][e.column + 1].check && graph[e.line - 2][e.column].check
+      ){
+        if(!graph[e.line - 1][e.column].check){
+          graph[e.line - 1][e.column].check = true;
+          graph[e.line - 1][e.column].player = currentPlayer;
+        }
+      }
+    }
+    if(!(e.line + 1 > gameSize * 2 - 2)){
+      if(graph[e.line][e.column].check && graph[e.line + 1][e.column - 1].check
+      && graph[e.line + 1][e.column + 1].check && graph[e.line + 2][e.column].check
+      ){
+        if(!graph[e.line + 1][e.column].check){
+          print("aqui");
+          graph[e.line + 1][e.column].check = true;
+          graph[e.line + 1][e.column].player = currentPlayer;
+        }
+      }
+    }
+  }
+
+  checkSquareLeftRight(Grafo e){
+    if(!(e.column - 1 < 0)){
+      if(graph[e.line][e.column].check && graph[e.line - 1][e.column - 1].check
+      && graph[e.line + 1][e.column - 1].check && graph[e.line][e.column - 2].check
+      ){
+        if(!graph[e.line][e.column - 1].check){
+          graph[e.line][e.column - 1].check = true;
+          graph[e.line][e.column - 1].player = currentPlayer;
+        }
+      }
+    }
+    if(!(e.column + 1 > gameSize * 2 - 2)){
+      if(graph[e.line][e.column].check && graph[e.line - 1][e.column + 1].check
+      && graph[e.line + 1][e.column + 1].check && graph[e.line][e.column + 2].check
+      ){
+        if(!graph[e.line][e.column + 1].check){
+          graph[e.line][e.column + 1].check = true;
+          graph[e.line][e.column + 1].player = currentPlayer;
+        }
+      }
+    }
   }
 
   changeTurn(){
