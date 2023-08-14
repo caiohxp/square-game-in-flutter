@@ -19,8 +19,9 @@ class Player {
   late int score;
   late int index;
   late Time time;
+  late Color color;
 
-  Player(this.name, this.score, this.index, this.time);
+  Player(this.name, this.score, this.index, this.time, this.color);
 }
 
 class Time {
@@ -38,23 +39,19 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   late Timer time;
 
-  late Player Player_1 = Player('Player 1', 0, 1, Time(181, ""));
-  late Player Player_2 = Player('Player 2', 0, 2, Time(180, ""));
+  late Player Player_1;
+  late Player Player_2;
 
   late String currentPlayer;
   late bool gameEnd;
+  late bool gameStart;
+  late bool pause;
   late List<String> occupied;
 
-  late List<List<Grafo>> graph = [];
+  late List<List<Grafo>> graph;
   late int gameSize;
 
   late var containerColumn;
-
-  static const styleText = TextStyle(
-    color: Colors.green,
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-  );
 
   @override
   void initState() {
@@ -63,10 +60,16 @@ class _GamePageState extends State<GamePage> {
   }
 
   void initializeGame() {
-    startTimer();
+    Player_1 = Player(
+        'Player 1', 0, 1, Time(11, ""), Color.fromARGB(255, 220, 20, 60));
+    Player_2 = Player(
+        'Player 2', 0, 2, Time(180, ""), Color.fromARGB(255, 26, 187, 66));
+    graph = [];
     currentPlayer = Player_1.name;
     gameSize = 7;
-    gameEnd = false;
+    gameStart = false;
+    gameEnd = true;
+    pause = false;
     assembleGraph(); //Montando o grafo do jogo
   }
 
@@ -75,7 +78,8 @@ class _GamePageState extends State<GamePage> {
       setState(() {
         if (Player_1.time.timeRemaining > 0 &&
             Player_2.time.timeRemaining > 0 &&
-            !gameEnd) {
+            !gameEnd &&
+            !pause) {
           currentPlayer == Player_1.name
               ? Player_1.time.timeRemaining--
               : Player_2.time.timeRemaining--;
@@ -136,13 +140,14 @@ class _GamePageState extends State<GamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Color.fromARGB(255, 38, 34, 40),
         body: Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        _headerText(),
-        _turn(),
-        _gameContainer(),
-      ]),
-    ));
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            _headerText(),
+            _turn(),
+            _gameContainer(),
+          ]),
+        ));
   }
 
   Widget _headerText() {
@@ -150,77 +155,126 @@ class _GamePageState extends State<GamePage> {
       children: [
         const Text(
           "Square Game",
-          style: styleText,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 36,
+            fontFamily: 'Squarea',
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
   }
 
   Widget _turn() {
-    const textStyle = TextStyle(color: Colors.white, fontSize: 20);
-    var p1Container = Container(
-      width: 100,
-      height: 100,
-      decoration: BoxDecoration(
-        color: currentPlayer == Player_2.name
-            ? const Color.fromARGB(75, 68, 137, 255)
-            : Colors.blue,
-        border: Border.all(width: 5.0, color: Colors.black12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            "Player 1",
-            style: textStyle,
-          ),
-          Text(
-            "${Player_1.score}",
-            style: textStyle,
-          ),
-          Text(
-            "${Player_1.time.clock}",
-            style: textStyle,
-          ),
-        ],
-      ),
-    );
+    var p1Container = _containerPlayer(Player_1, Player_2);
+    var p2Container = _containerPlayer(Player_2, Player_1);
     var textMid = Text(
       "vez do $currentPlayer",
-      style: styleText,
+      style: TextStyle(
+          color: Colors.white,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Squarea'),
     );
-    var p2Container = Container(
-      width: 100,
-      height: 100,
+
+    var playButton = IconButton(
+        onPressed: () {
+          setState(() {
+            if (!gameEnd) {
+              pause = false;
+              startTimer();
+              updateGraph();
+            }
+          });
+        },
+        iconSize: 50,
+        color: Colors.white,
+        icon: Icon(Icons.play_arrow));
+
+    var pauseButton = IconButton(
+        onPressed: () {
+          setState(() {
+            if (!gameEnd) {
+              pause = true;
+              updateGraph();
+            }
+          });
+        },
+        iconSize: 50,
+        color: Colors.white,
+        icon: Icon(Icons.pause));
+
+    var refreshButton = IconButton(
+        onPressed: () {
+          setState(() {
+            initializeGame();
+          });
+        },
+        iconSize: 50,
+        color: Colors.white,
+        icon: Icon(Icons.refresh));
+
+    var rowButtons = Row(
+      children: [pause ? playButton : pauseButton, refreshButton],
+    );
+
+    var columnMid = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [textMid, rowButtons],
+    );
+
+    var btnStart = ElevatedButton(
+      onPressed: () {
+        setState(() {
+          gameEnd = false;
+          gameStart = true;
+          startTimer();
+          updateGraph();
+        });
+      },
+      style: ElevatedButton.styleFrom(
+          primary: Color.fromARGB(255, 20, 17, 27),
+          onPrimary: Colors.white,
+          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20)),
+      child:
+          Text("START", style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+    );
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [p1Container, gameStart ? columnMid : btnStart, p2Container],
+    );
+  }
+
+  Widget _containerPlayer(Player p1, Player p2) {
+    return Container(
+      width: 120,
+      height: 120,
       decoration: BoxDecoration(
-        color: currentPlayer == Player_1.name
-            ? const Color.fromARGB(122, 255, 214, 64)
-            : Colors.amber,
+        color: currentPlayer == p2.name ? p1.color.withOpacity(0.5) : p1.color,
         border: Border.all(width: 5.0, color: Colors.black12),
-        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            "Player 2",
-            style: textStyle,
+            "${p1.name}",
+            style: TextStyle(
+                color: Colors.white, fontSize: 25, fontFamily: 'Squarea'),
           ),
           Text(
-            "${Player_2.score}",
-            style: textStyle,
+            "${p1.score}",
+            style: TextStyle(
+                color: Colors.white, fontSize: 30, fontFamily: 'Squarea'),
           ),
           Text(
-            "${Player_2.time.clock}",
-            style: textStyle,
+            "${p1.time.clock}",
+            style: TextStyle(
+                color: Colors.white, fontSize: 30, fontFamily: 'Squarea'),
           ),
         ],
       ),
-    );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [p1Container, textMid, p2Container],
     );
   }
 
@@ -247,7 +301,7 @@ class _GamePageState extends State<GamePage> {
     return InkWell(
         onTap: () {
           setState(() {
-            if (!e.check && !gameEnd) {
+            if (!e.check && !gameEnd && gameStart) {
               e.check = true;
               checkSquareTopBot(e);
               updateGraph();
@@ -259,7 +313,7 @@ class _GamePageState extends State<GamePage> {
           width: 45,
           height: 45 / 6,
           decoration: BoxDecoration(
-            color: e.check ? Colors.black87 : Colors.black12,
+            color: e.check ? Colors.white : Colors.black12,
           ),
         ));
   }
@@ -268,7 +322,7 @@ class _GamePageState extends State<GamePage> {
     return InkWell(
         onTap: () {
           setState(() {
-            if (!e.check && !gameEnd) {
+            if (!e.check && !gameEnd && gameStart) {
               e.check = true;
               checkSquareLeftRight(e);
               updateGraph();
@@ -280,7 +334,7 @@ class _GamePageState extends State<GamePage> {
           width: 45 / 6,
           height: 45,
           decoration: BoxDecoration(
-            color: e.check ? Colors.black : Colors.black12,
+            color: e.check ? Colors.white : Colors.black12,
           ),
         ));
   }
@@ -293,14 +347,15 @@ class _GamePageState extends State<GamePage> {
         color: !s.check
             ? Colors.black87
             : s.player == 'Player 1'
-                ? Colors.blue
-                : Colors.amber,
+                ? Player_1.color
+                : Player_2.color,
       ),
       child: Center(
         child: Text(
           '${s.value}',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white, fontSize: 20),
+          style: TextStyle(
+              color: Colors.white, fontSize: 20, fontFamily: 'Squarea'),
         ),
       ),
     );
@@ -431,10 +486,8 @@ class _GamePageState extends State<GamePage> {
 
   showGameOverMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Game Over \n $message",
+        content: Text("Fim de Jogo \n $message",
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 20,
-            ))));
+            style: TextStyle(fontSize: 20, fontFamily: 'Squarea'))));
   }
 }
