@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pontinhos/game-page.dart';
+import 'package:squaro/game-page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Square-Game',
+      title: 'Squaro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.green),
       home: GamePage(),

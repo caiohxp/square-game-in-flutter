@@ -1,6 +1,9 @@
 import "package:flutter/material.dart";
+import 'package:responsive_styles/breakpoints/breakpoints.dart';
 import 'dart:math';
 import 'dart:async';
+
+import 'package:responsive_styles/responsive/responsive.dart';
 
 class Grafo {
   late int line;
@@ -61,12 +64,12 @@ class _GamePageState extends State<GamePage> {
 
   void initializeGame() {
     Player_1 = Player(
-        'Player 1', 0, 1, Time(11, ""), Color.fromARGB(255, 220, 20, 60));
+        'Player 1', 0, 1, Time(181, ""), Color.fromARGB(255, 220, 20, 60));
     Player_2 = Player(
         'Player 2', 0, 2, Time(180, ""), Color.fromARGB(255, 26, 187, 66));
     graph = [];
     currentPlayer = Player_1.name;
-    gameSize = 7;
+    gameSize = 6;
     gameStart = false;
     gameEnd = true;
     pause = false;
@@ -139,22 +142,43 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
+    var responsive = Responsive(context);
+    var gameColumn =
+        Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      gameStart ? _turn(responsive) : _headerText(),
+      gameStart ? _gameContainer(responsive) : _contentHome()
+    ]);
+    var xsColumn =
+        Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      gameStart ? _turn(responsive) : _headerText(),
+      gameStart ? _gameContainer(responsive) : _contentHome(),
+      gameStart
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _containerPlayer(Player_1, Player_2),
+                _containerPlayer(Player_2, Player_1)
+              ],
+            )
+          : Container()
+    ]);
     return Scaffold(
         backgroundColor: Color.fromARGB(255, 38, 34, 40),
         body: Center(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            _headerText(),
-            _turn(),
-            _gameContainer(),
-          ]),
-        ));
+            child: responsive.value({
+          Breakpoints.xl: gameColumn,
+          Breakpoints.lg: gameColumn,
+          Breakpoints.md: gameColumn,
+          Breakpoints.sm: gameColumn,
+          Breakpoints.xs: xsColumn
+        })));
   }
 
   Widget _headerText() {
     return Column(
       children: [
         const Text(
-          "Square Game",
+          "Squaro Game",
           style: TextStyle(
             color: Colors.white,
             fontSize: 36,
@@ -166,7 +190,31 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  Widget _turn() {
+  Widget _contentHome() {
+    var btnStart = ElevatedButton(
+      onPressed: () {
+        setState(() {
+          gameEnd = false;
+          gameStart = true;
+          startTimer();
+          updateGraph();
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        primary: Color.fromARGB(255, 20, 17, 27),
+        onPrimary: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+      ),
+      child:
+          Text("START", style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+    );
+
+    return Center(
+      child: btnStart,
+    );
+  }
+
+  Widget _turn(Responsive responsive) {
     var p1Container = _containerPlayer(Player_1, Player_2);
     var p2Container = _containerPlayer(Player_2, Player_1);
     var textMid = Text(
@@ -216,6 +264,7 @@ class _GamePageState extends State<GamePage> {
         icon: Icon(Icons.refresh));
 
     var rowButtons = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [pause ? playButton : pauseButton, refreshButton],
     );
 
@@ -224,27 +273,15 @@ class _GamePageState extends State<GamePage> {
       children: [textMid, rowButtons],
     );
 
-    var btnStart = ElevatedButton(
-      onPressed: () {
-        setState(() {
-          gameEnd = false;
-          gameStart = true;
-          startTimer();
-          updateGraph();
-        });
-      },
-      style: ElevatedButton.styleFrom(
-          primary: Color.fromARGB(255, 20, 17, 27),
-          onPrimary: Colors.white,
-          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20)),
-      child:
-          Text("START", style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
-    );
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [p1Container, gameStart ? columnMid : btnStart, p2Container],
-    );
+    return responsive.value({
+      Breakpoints.xl: columnMid,
+      Breakpoints.lg: columnMid,
+      Breakpoints.md: columnMid,
+      Breakpoints.sm: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [p1Container, columnMid, p2Container]),
+      Breakpoints.xs: columnMid
+    });
   }
 
   Widget _containerPlayer(Player p1, Player p2) {
@@ -278,12 +315,27 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  Widget _gameContainer() {
-    return Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        width: MediaQuery.of(context).size.height * 0.7,
+  Widget _gameContainer(Responsive responsive) {
+    var p1Container = _containerPlayer(Player_1, Player_2);
+    var p2Container = _containerPlayer(Player_2, Player_1);
+    var container = Container(
+        height: 649 * (gameSize / 10),
+        width: 649 * (gameSize / 10),
         margin: const EdgeInsets.all(8),
         child: containerColumn);
+    return responsive.value({
+      Breakpoints.xl: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [p1Container, container, p2Container]),
+      Breakpoints.lg: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [p1Container, container, p2Container]),
+      Breakpoints.md: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [p1Container, container, p2Container]),
+      Breakpoints.sm: container,
+      Breakpoints.xs: container
+    });
   }
 
   Widget _vertex() {
