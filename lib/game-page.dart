@@ -44,12 +44,14 @@ class _GamePageState extends State<GamePage> {
 
   late Player Player_1;
   late Player Player_2;
+  late Player CPU;
+  late Player rival;
 
   late String currentPlayer;
   late bool gameEnd;
   late bool gameStart;
+  late bool onePlayerMode;
   late bool pause;
-  late List<String> occupied;
 
   late List<List<Grafo>> graph;
   late int gameSize;
@@ -67,12 +69,14 @@ class _GamePageState extends State<GamePage> {
         'Player 1', 0, 1, Time(181, ""), Color.fromARGB(255, 220, 20, 60));
     Player_2 = Player(
         'Player 2', 0, 2, Time(180, ""), Color.fromARGB(255, 26, 187, 66));
+    CPU = Player('CPU', 0, 3, Time(180, ""), Color.fromARGB(255, 63, 20, 220));
     graph = [];
     currentPlayer = Player_1.name;
     gameSize = 6;
     gameStart = false;
     gameEnd = true;
     pause = false;
+    onePlayerMode = true;
     assembleGraph(); //Montando o grafo do jogo
   }
 
@@ -80,23 +84,23 @@ class _GamePageState extends State<GamePage> {
     time = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         if (Player_1.time.timeRemaining > 0 &&
-            Player_2.time.timeRemaining > 0 &&
+            rival.time.timeRemaining > 0 &&
             !gameEnd &&
             !pause) {
           currentPlayer == Player_1.name
               ? Player_1.time.timeRemaining--
-              : Player_2.time.timeRemaining--;
+              : rival.time.timeRemaining--;
           Player_1.time.clock =
               '${(Player_1.time.timeRemaining / 60).toInt()}:${Player_1.time.timeRemaining % 60}';
           Player_2.time.clock =
-              '${(Player_2.time.timeRemaining / 60).toInt()}:${Player_2.time.timeRemaining % 60}';
+              '${(rival.time.timeRemaining / 60).toInt()}:${rival.time.timeRemaining % 60}';
         } else {
           time.cancel();
           gameEnd = true;
           if (Player_1.time.timeRemaining <= 0)
             showGameOverMessage("${Player_1.name} Wins!");
-          else if (Player_2.time.timeRemaining <= 0)
-            showGameOverMessage("${Player_2.name} Wins!");
+          else if (rival.time.timeRemaining <= 0)
+            showGameOverMessage("${rival.name} Wins!");
         }
       });
     });
@@ -156,8 +160,8 @@ class _GamePageState extends State<GamePage> {
           ? Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _containerPlayer(Player_1, Player_2),
-                _containerPlayer(Player_2, Player_1)
+                _containerPlayer(Player_1, rival),
+                _containerPlayer(rival, Player_1)
               ],
             )
           : Container()
@@ -191,32 +195,76 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _contentHome() {
-    var btnStart = ElevatedButton(
-      onPressed: () {
-        setState(() {
-          gameEnd = false;
-          gameStart = true;
-          startTimer();
-          updateGraph();
-        });
-      },
-      style: ElevatedButton.styleFrom(
-        primary: Color.fromARGB(255, 20, 17, 27),
-        onPrimary: Colors.white,
-        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-      ),
-      child:
-          Text("START", style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+    var btnVsCPU = Container(
+        margin: EdgeInsets.all(10),
+        child: ElevatedButton(
+          onPressed: () {
+            setState(() {
+              onePlayerMode = true;
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            primary:
+                onePlayerMode ? Colors.green : Color.fromARGB(255, 20, 17, 27),
+            onPrimary: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+          ),
+          child: Text("1 Player",
+              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+        ));
+
+    var btnVsPlayer = Container(
+        margin: EdgeInsets.all(10),
+        child: ElevatedButton(
+          onPressed: () {
+            setState(() {
+              onePlayerMode = false;
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            primary:
+                onePlayerMode ? Color.fromARGB(255, 20, 17, 27) : Colors.green,
+            onPrimary: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+          ),
+          child: Text("2 Player",
+              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+        ));
+
+    var rowMode = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [btnVsCPU, btnVsPlayer],
     );
 
-    return Center(
-      child: btnStart,
+    var btnStart = Container(
+        margin: EdgeInsets.all(10),
+        child: ElevatedButton(
+          onPressed: () {
+            setState(() {
+              gameEnd = false;
+              gameStart = true;
+              rival = onePlayerMode ? CPU : Player_2;
+              startTimer();
+              updateGraph();
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            primary: Color.fromARGB(255, 20, 17, 27),
+            onPrimary: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+          ),
+          child: Text("START",
+              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+        ));
+
+    return Column(
+      children: [btnStart, rowMode],
     );
   }
 
   Widget _turn(Responsive responsive) {
-    var p1Container = _containerPlayer(Player_1, Player_2);
-    var p2Container = _containerPlayer(Player_2, Player_1);
+    var p1Container = _containerPlayer(Player_1, rival);
+    var p2Container = _containerPlayer(rival, Player_1);
     var textMid = Text(
       "vez do $currentPlayer",
       style: TextStyle(
@@ -316,8 +364,8 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _gameContainer(Responsive responsive) {
-    var p1Container = _containerPlayer(Player_1, Player_2);
-    var p2Container = _containerPlayer(Player_2, Player_1);
+    var p1Container = _containerPlayer(Player_1, rival);
+    var p2Container = _containerPlayer(rival, Player_1);
     var container = Container(
         height: 649 * (gameSize / 10),
         width: 649 * (gameSize / 10),
@@ -400,7 +448,7 @@ class _GamePageState extends State<GamePage> {
             ? Colors.black87
             : s.player == 'Player 1'
                 ? Player_1.color
-                : Player_2.color,
+                : rival.color,
       ),
       child: Center(
         child: Text(
@@ -506,17 +554,17 @@ class _GamePageState extends State<GamePage> {
   addScore(Grafo s) {
     if (currentPlayer == Player_1.name)
       Player_1.score += s.value?.toInt() ?? 0;
-    else if (currentPlayer == Player_2.name)
-      Player_2.score += s.value?.toInt() ?? 0;
+    else if (currentPlayer == rival.name) rival.score += s.value?.toInt() ?? 0;
   }
 
   changeTurn() {
     if (currentPlayer == Player_1.name) {
-      currentPlayer = Player_2.name;
+      currentPlayer = rival.name;
     } else {
       currentPlayer = Player_1.name;
     }
     checkForWinner();
+    if (onePlayerMode && currentPlayer == CPU.name) IA();
   }
 
   checkForWinner() {
@@ -526,11 +574,11 @@ class _GamePageState extends State<GamePage> {
         graph.every((row) => row.every((element) => element.check == true));
 
     if (checkGame) {
-      message = Player_1.score > Player_2.score
+      message = Player_1.score > rival.score
           ? "${Player_1.name} Wins!"
-          : Player_1.score == Player_2.score
+          : Player_1.score == rival.score
               ? "Empate"
-              : "${Player_2.name} Wins!";
+              : "${rival.name} Wins!";
       showGameOverMessage(message);
       gameEnd = true;
     }
@@ -541,5 +589,81 @@ class _GamePageState extends State<GamePage> {
         content: Text("Fim de Jogo \n $message",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 20, fontFamily: 'Squarea'))));
+  }
+
+  IA() {
+    List<Grafo> possibleMoves = [];
+    List<Grafo> possibleMovePoints = [];
+    Grafo chosenMove;
+    graph.forEach((linha) {
+      linha.forEach((element) {
+        if (element.composition == "edgeH" || element.composition == "edgeV") {
+          if (!element.check) {
+            if (checkSquareLeftRightAIMove(element) &&
+                    element.composition == "edgeV" ||
+                checkSquareTopBotAIMove(element) &&
+                    element.composition == "edgeH")
+              possibleMovePoints.add(element);
+            else
+              possibleMoves.add(element);
+          }
+        }
+      });
+    });
+
+    if (possibleMovePoints.length > 0) {
+      chosenMove =
+          possibleMovePoints[Random().nextInt(possibleMovePoints.length)];
+    } else {
+      chosenMove = possibleMoves[Random().nextInt(possibleMoves.length)];
+    }
+
+    graph[chosenMove.line][chosenMove.column].check = true;
+    if (chosenMove.composition == "edgeV")
+      checkSquareLeftRight(chosenMove);
+    else if (chosenMove.composition == "edgeH") checkSquareTopBot(chosenMove);
+    updateGraph();
+    changeTurn();
+  }
+
+  checkSquareTopBotAIMove(Grafo e) {
+    if (e.composition == "edgeH") {
+      if (!(e.line - 1 < 0)) {
+        if (graph[e.line - 1][e.column - 1].check &&
+            graph[e.line - 1][e.column + 1].check &&
+            graph[e.line - 2][e.column].check) {
+          return true;
+        }
+      }
+      if (!(e.line + 1 > gameSize * 2 - 2)) {
+        if (graph[e.line + 1][e.column - 1].check &&
+            graph[e.line + 1][e.column + 1].check &&
+            graph[e.line + 2][e.column].check) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  checkSquareLeftRightAIMove(Grafo e) {
+    if (e.composition == "edgeV") {
+      if (!(e.column - 1 < 0)) {
+        if (graph[e.line - 1][e.column - 1].check &&
+            graph[e.line + 1][e.column - 1].check &&
+            graph[e.line][e.column - 2].check) {
+          return true;
+        }
+      }
+      if (!(e.column + 1 > gameSize * 2 - 2)) {
+        if (graph[e.line][e.column].check &&
+            graph[e.line - 1][e.column + 1].check &&
+            graph[e.line + 1][e.column + 1].check &&
+            graph[e.line][e.column + 2].check) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
