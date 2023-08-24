@@ -164,8 +164,8 @@ class _GamePageState extends State<GamePage> {
           ? Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _containerPlayer(Player_1, rival),
-                _containerPlayer(rival, Player_1)
+                _containerPlayer(Player_1, rival, responsive),
+                _containerPlayer(rival, Player_1, responsive)
               ],
             )
           : Container()
@@ -183,19 +183,30 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _headerText() {
-    return Column(
+    var rowTitle = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          "Square Game",
+        Text(
+          "Square",
           style: TextStyle(
             color: Colors.white,
-            fontSize: 36,
+            fontSize: 72,
             fontFamily: 'Squarea',
             fontWeight: FontWeight.bold,
           ),
         ),
+        Text(
+          "o",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 144,
+            fontFamily: 'Squarea',
+            fontWeight: FontWeight.bold,
+          ),
+        )
       ],
     );
+    return rowTitle;
   }
 
   Widget _contentHome() {
@@ -284,7 +295,7 @@ class _GamePageState extends State<GamePage> {
     );
 
     var btnStart = Container(
-        margin: EdgeInsets.all(10),
+        margin: EdgeInsets.only(top: 0, left: 10, right: 10, bottom: 10),
         child: ElevatedButton(
           onPressed: () {
             setState(() {
@@ -310,8 +321,8 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _turn(Responsive responsive) {
-    var p1Container = _containerPlayer(Player_1, rival);
-    var p2Container = _containerPlayer(rival, Player_1);
+    var p1Container = _containerPlayer(Player_1, rival, responsive);
+    var p2Container = _containerPlayer(rival, Player_1, responsive);
     var textMid = Text(
       "vez do $currentPlayer",
       style: TextStyle(
@@ -380,31 +391,51 @@ class _GamePageState extends State<GamePage> {
     });
   }
 
-  Widget _containerPlayer(Player p1, Player p2) {
+  Widget _containerPlayer(Player p1, Player p2, Responsive responsive) {
+    var sizeContainer = responsive.value({
+      Breakpoints.xl: 210,
+      Breakpoints.lg: 180,
+      Breakpoints.md: 150,
+      Breakpoints.sm: 135,
+      Breakpoints.xs: 120
+    });
+    var sizeFont = responsive.value({
+      Breakpoints.xl: 8,
+      Breakpoints.lg: 7,
+      Breakpoints.md: 6,
+      Breakpoints.sm: 5,
+      Breakpoints.xs: 4
+    });
     var textName = Text(
       "${p1.name}",
-      style:
-          TextStyle(color: Colors.white, fontSize: 25, fontFamily: 'Squarea'),
+      style: TextStyle(
+          color: Colors.white,
+          fontSize: sizeFont.toDouble() * 5,
+          fontFamily: 'Squarea'),
     );
 
     var textScore = Text(
       "${p1.score}",
-      style:
-          TextStyle(color: Colors.white, fontSize: 35, fontFamily: 'Squarea'),
+      style: TextStyle(
+          color: Colors.white,
+          fontSize: sizeFont.toDouble() * 7,
+          fontFamily: 'Squarea'),
     );
 
     var textTime = Text(
       "${p1.time.clock}",
-      style:
-          TextStyle(color: Colors.white, fontSize: 30, fontFamily: 'Squarea'),
+      style: TextStyle(
+          color: Colors.white,
+          fontSize: sizeFont.toDouble() * 6,
+          fontFamily: 'Squarea'),
     );
 
     var arrayTextPlayer = p1.name == "CPU"
         ? [textName, textScore]
         : [textName, textScore, textTime];
     return Container(
-      width: 120,
-      height: 120,
+      width: sizeContainer.toDouble(),
+      height: sizeContainer.toDouble(),
       decoration: BoxDecoration(
         color: currentPlayer == p2.name ? p1.color.withOpacity(0.5) : p1.color,
         border: Border.all(width: 5.0, color: Colors.black12),
@@ -417,8 +448,8 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _gameContainer(Responsive responsive) {
-    var p1Container = _containerPlayer(Player_1, rival);
-    var p2Container = _containerPlayer(rival, Player_1);
+    var p1Container = _containerPlayer(Player_1, rival, responsive);
+    var p2Container = _containerPlayer(rival, Player_1, responsive);
     var container = Container(
         height: 649 * (gameSize / 10),
         width: 649 * (gameSize / 10),
