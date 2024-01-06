@@ -2,37 +2,9 @@ import "package:flutter/material.dart";
 import 'package:responsive_styles/breakpoints/breakpoints.dart';
 import 'dart:math';
 import 'dart:async';
-
+import 'package:squaro/model/structures.dart';
 import 'package:responsive_styles/responsive/responsive.dart';
-
-class Grafo {
-  late int line;
-  late int column;
-  late String composition;
-  late bool check;
-  late int? value;
-  late String? player;
-
-  Grafo(this.line, this.column, this.composition, this.check,
-      {this.value, this.player});
-}
-
-class Player {
-  late String name;
-  late int score;
-  late int index;
-  late Time time;
-  late Color color;
-
-  Player(this.name, this.score, this.index, this.time, this.color);
-}
-
-class Time {
-  late int timeRemaining;
-  late String clock;
-
-  Time(this.timeRemaining, this.clock);
-}
+import 'package:squaro/widgets/game-title.dart';
 
 class GamePage extends StatefulWidget {
   @override
@@ -51,7 +23,7 @@ class _GamePageState extends State<GamePage> {
   late String level;
   late bool gameEnd;
   late bool gameStart;
-  late bool onePlayerMode;
+  late String playerMode;
   late bool pause;
 
   late List<List<Grafo>> graph;
@@ -77,8 +49,8 @@ class _GamePageState extends State<GamePage> {
     gameStart = false;
     gameEnd = true;
     pause = false;
-    onePlayerMode = true;
-    level = "easy";
+    playerMode = "vs Bot";
+    level = "Easy";
     assembleGraph(); //Montando o grafo do jogo
   }
 
@@ -102,9 +74,9 @@ class _GamePageState extends State<GamePage> {
           time.cancel();
           gameEnd = true;
           if (Player_1.time.timeRemaining <= 0)
-            showGameOverMessage("${Player_1.name} Wins!");
-          else if (rival.time.timeRemaining <= 0)
             showGameOverMessage("${rival.name} Wins!");
+          else if (rival.time.timeRemaining <= 0)
+            showGameOverMessage("${Player_1.name} Wins!");
         }
       });
     });
@@ -153,12 +125,12 @@ class _GamePageState extends State<GamePage> {
     var responsive = Responsive(context);
     var gameColumn =
         Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      gameStart ? _turn(responsive) : _headerText(),
+      gameStart ? _turn(responsive) : GameTitle(),
       gameStart ? _gameContainer(responsive) : _contentHome()
     ]);
     var xsColumn =
         Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      gameStart ? _turn(responsive) : _headerText(),
+      gameStart ? _turn(responsive) : GameTitle(),
       gameStart ? _gameContainer(responsive) : _contentHome(),
       gameStart
           ? Row(
@@ -182,116 +154,75 @@ class _GamePageState extends State<GamePage> {
         })));
   }
 
-  Widget _headerText() {
-    var rowTitle = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          "Square",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 72,
-            fontFamily: 'Squarea',
-            fontWeight: FontWeight.bold,
+  Container _containerLevel(String choiceLevel) {
+    return Container(
+        margin: EdgeInsets.all(10),
+        child: ElevatedButton(
+          onPressed: () {
+            setState(() {
+              level = choiceLevel;
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            primary: level == choiceLevel
+                ? Colors.green
+                : Color.fromARGB(255, 20, 17, 27),
+            onPrimary: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
           ),
-        ),
-        Text(
-          "o",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 144,
-            fontFamily: 'Squarea',
-            fontWeight: FontWeight.bold,
+          child: Text(choiceLevel,
+              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+        ));
+  }
+
+  Container _containerMode(String choiceMode) {
+    return Container(
+        margin: EdgeInsets.all(10),
+        child: ElevatedButton(
+          onPressed: () {
+            setState(() {
+              playerMode = choiceMode;
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            primary: playerMode == choiceMode
+                ? Colors.green
+                : Color.fromARGB(255, 20, 17, 27),
+            onPrimary: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
           ),
-        )
-      ],
-    );
-    return rowTitle;
+          child: Text(choiceMode,
+              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
+        ));
   }
 
   Widget _contentHome() {
-    var levelEasy = Container(
-        margin: EdgeInsets.all(10),
-        child: ElevatedButton(
-          onPressed: () {
-            setState(() {
-              level = "easy";
-            });
-          },
-          style: ElevatedButton.styleFrom(
-            primary: level == "easy"
-                ? Colors.green
-                : Color.fromARGB(255, 20, 17, 27),
-            onPrimary: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-          ),
-          child: Text("Easy",
-              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
-        ));
+    var createRoom = _containerLevel("Create Room");
 
-    var levelHard = Container(
-        margin: EdgeInsets.all(10),
-        child: ElevatedButton(
-          onPressed: () {
-            setState(() {
-              level = "hard";
-            });
-          },
-          style: ElevatedButton.styleFrom(
-            primary: level == "hard"
-                ? Colors.green
-                : Color.fromARGB(255, 20, 17, 27),
-            onPrimary: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-          ),
-          child: Text("Hard",
-              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
-        ));
+    var joinRoom = _containerLevel("Join Room");
 
+    var rowRoom = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [createRoom, joinRoom],
+    );
+
+    var levelEasy = _containerLevel("Easy");
+
+    var levelHard = _containerLevel("Hard");
     var rowLevel = Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [levelEasy, levelHard],
     );
 
-    var btnVsCPU = Container(
-        margin: EdgeInsets.all(10),
-        child: ElevatedButton(
-          onPressed: () {
-            setState(() {
-              onePlayerMode = true;
-            });
-          },
-          style: ElevatedButton.styleFrom(
-            primary:
-                onePlayerMode ? Colors.green : Color.fromARGB(255, 20, 17, 27),
-            onPrimary: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-          ),
-          child: Text("1 Player",
-              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
-        ));
+    var btnVsCPU = _containerMode("vs Bot");
 
-    var btnVsPlayer = Container(
-        margin: EdgeInsets.all(10),
-        child: ElevatedButton(
-          onPressed: () {
-            setState(() {
-              onePlayerMode = false;
-            });
-          },
-          style: ElevatedButton.styleFrom(
-            primary:
-                onePlayerMode ? Color.fromARGB(255, 20, 17, 27) : Colors.green,
-            onPrimary: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-          ),
-          child: Text("2 Player",
-              style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
-        ));
+    var btnVsPlayer = _containerMode("Local");
+
+    var btnOnline = _containerMode("Online");
 
     var rowMode = Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [btnVsCPU, btnVsPlayer],
+      children: [btnVsCPU, btnVsPlayer, btnOnline],
     );
 
     var btnStart = Container(
@@ -301,7 +232,7 @@ class _GamePageState extends State<GamePage> {
             setState(() {
               gameEnd = false;
               gameStart = true;
-              rival = onePlayerMode ? CPU : Player_2;
+              rival = playerMode == "vs Bot" ? CPU : Player_2;
               startTimer();
               updateGraph();
             });
@@ -316,7 +247,15 @@ class _GamePageState extends State<GamePage> {
         ));
 
     return Column(
-      children: [btnStart, rowMode, onePlayerMode ? rowLevel : Container()],
+      children: [
+        btnStart,
+        rowMode,
+        playerMode == "vs Bot"
+            ? rowLevel
+            : playerMode == "vs Player"
+                ? Container()
+                : rowRoom
+      ],
     );
   }
 
@@ -648,7 +587,7 @@ class _GamePageState extends State<GamePage> {
       currentPlayer = Player_1.name;
     }
     checkForWinner();
-    if (onePlayerMode && currentPlayer == CPU.name) AI();
+    if (playerMode == "vs Bot" && currentPlayer == CPU.name) AI();
   }
 
   checkForWinner() {
