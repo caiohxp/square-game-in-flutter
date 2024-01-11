@@ -182,6 +182,7 @@ class _GamePageState extends State<GamePage> {
           onPressed: () {
             setState(() {
               playerMode = choiceMode;
+              if (playerMode != "Online") level = "Easy";
             });
           },
           style: ElevatedButton.styleFrom(
@@ -246,15 +247,43 @@ class _GamePageState extends State<GamePage> {
               style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
         ));
 
+    var inputRoom = Container(
+        margin: EdgeInsets.only(top: 0, left: 10, right: 10, bottom: 10),
+        width: 160,
+        child: Column(
+          children: [
+            TextFormField(
+              decoration:
+                  const InputDecoration(hintText: 'Enter your code room'),
+              validator: (String? value) {
+                if (value == null || value.isEmpty)
+                  return 'Please enter some text';
+                return null;
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  // Validate will return true if the form is valid, or false if
+                  // the form is invalid.
+                },
+                child: const Text('Submit'),
+              ),
+            ),
+          ],
+        ));
+
     return Column(
       children: [
         btnStart,
         rowMode,
         playerMode == "vs Bot"
             ? rowLevel
-            : playerMode == "vs Player"
+            : playerMode == "Local"
                 ? Container()
-                : rowRoom
+                : rowRoom,
+        level.contains("Room") ? inputRoom : Container()
       ],
     );
   }
