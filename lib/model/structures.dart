@@ -28,3 +28,16 @@ class Time {
 
   Time(this.timeRemaining, this.clock);
 }
+
+class GameConfig {
+  late String value;
+
+  GameConfig(this.value);
+}
+
+class EdgeSize {
+  late double max;
+  late double min;
+
+  EdgeSize(this.max, this.min);
+}
