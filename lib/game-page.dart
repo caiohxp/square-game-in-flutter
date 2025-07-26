@@ -5,6 +5,8 @@ import 'dart:async';
 import 'package:squaro/model/structures.dart';
 import 'package:responsive_styles/responsive/responsive.dart';
 import 'package:squaro/widgets/game-title.dart';
+import 'dart:convert'; // Import for JSON encoding/decoding
+import 'package:web_socket_channel/web_socket_channel.dart'; // Import WebSocket package
 
 class GamePage extends StatefulWidget {
   @override
@@ -32,6 +34,11 @@ class _GamePageState extends State<GamePage> {
 
   late var containerColumn;
 
+  // Variáveis para o modo Online
+  late WebSocketChannel? channel;
+  String? roomId;
+  final TextEditingController _roomController = TextEditingController();
+
   @override
   void initState() {
     initializeGame();
@@ -54,7 +61,42 @@ class _GamePageState extends State<GamePage> {
     gameStart = false;
     gameEnd = true;
     pause = false;
+    channel = null;
+    roomId = null;
     assembleGraph(); //Montando o grafo do jogo
+  }
+
+  // Função para conectar ao servidor WebSocket
+  void _connectToWebSocket(String id) {
+    // Substitua 'SEU_SERVIDOR.com' pela URL real do seu servidor
+    final wsUrl = Uri.parse('ws://SEU_SERVIDOR.com/ws/$id');
+    channel = WebSocketChannel.connect(wsUrl);
+    roomId = id;
+
+    // Começa a ouvir mensagens do servidor
+    channel!.stream.listen((message) {
+      final decodedMessage = jsonDecode(message);
+
+      // Lógica para processar as mensagens do servidor
+      // Ex: Atualizar o tabuleiro, pontuação, turno, etc.
+      setState(() {
+        // Exemplo:
+        // graph = updateGraphFromServer(decodedMessage['board']);
+        // Player_1.score = decodedMessage['score1'];
+        // rival.score = decodedMessage['score2'];
+        // currentPlayer = decodedMessage['currentPlayer'];
+      });
+    }, onError: (error) {
+      // Lidar com erros de conexão
+      setState(() {
+        roomId = "Erro de conexão";
+      });
+    }, onDone: () {
+      // Lidar com a desconexão
+      setState(() {
+        roomId = "Desconectado";
+      });
+    });
   }
 
   void startTimer() {
@@ -159,22 +201,24 @@ class _GamePageState extends State<GamePage> {
         })));
   }
 
-  Container _gameConfig(GameConfig state, String choiceState) {
+  Container _gameConfig(GameConfig state, String choiceState,
+      {VoidCallback? onPressed}) {
     return Container(
         margin: EdgeInsets.all(10),
         child: ElevatedButton(
-          onPressed: () {
-            setState(() {
-              state.value = choiceState;
-              if (state.value == "Easy" || state.value == "Hard")
-                CPU.name = "CPU ${state.value}";
-            });
-          },
+          onPressed: onPressed ??
+              () {
+                setState(() {
+                  state.value = choiceState;
+                  if (state.value == "Easy" || state.value == "Hard")
+                    CPU.name = "CPU ${state.value}";
+                });
+              },
           style: ElevatedButton.styleFrom(
-            primary: state.value == choiceState
+            backgroundColor: state.value == choiceState
                 ? Colors.green
                 : Color.fromARGB(255, 20, 17, 27),
-            onPrimary: Colors.white,
+            foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
           ),
           child: Text(choiceState,
@@ -189,8 +233,8 @@ class _GamePageState extends State<GamePage> {
         child: const Text('Instruções',
             style: TextStyle(fontSize: 20, fontFamily: 'Squarea')),
         style: ElevatedButton.styleFrom(
-          primary: Color.fromARGB(255, 20, 17, 27),
-          onPrimary: Colors.white,
+          backgroundColor: Color.fromARGB(255, 20, 17, 27),
+          foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
         ),
         onPressed: () {
@@ -214,8 +258,8 @@ class _GamePageState extends State<GamePage> {
                       ElevatedButton(
                         child: const Text('Close BottomSheet'),
                         style: ElevatedButton.styleFrom(
-                          primary: Color.fromARGB(255, 20, 17, 27),
-                          onPrimary: Colors.white,
+                          backgroundColor: Color.fromARGB(255, 20, 17, 27),
+                          foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(
                               horizontal: 30, vertical: 20),
                         ),
@@ -233,9 +277,21 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _contentHome() {
-    var createRoom = _gameConfig(level, "Create Room");
+    var createRoom = _gameConfig(level, "Create Room", onPressed: () {
+      setState(() {
+        // Gera um ID de sala aleatório (exemplo simples)
+        var random = Random();
+        roomId = 'squaro${random.nextInt(10000)}';
+        _connectToWebSocket(roomId!);
+        level.value = "Create Room";
+      });
+    });
 
-    var joinRoom = _gameConfig(level, "Join Room");
+    var joinRoom = _gameConfig(level, "Join Room", onPressed: () {
+      setState(() {
+        level.value = "Join Room";
+      });
+    });
 
     var rowRoom = Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -258,7 +314,7 @@ class _GamePageState extends State<GamePage> {
 
     var rowMode = Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [btnVsCPU, btnVsPlayer],
+      children: [btnVsCPU, btnVsPlayer, btnOnline],
     );
 
     var modalInstructions = _modal();
@@ -268,20 +324,26 @@ class _GamePageState extends State<GamePage> {
         child: ElevatedButton(
           onPressed: () {
             setState(() {
-              if (level.value == "Easy" || level.value == "Hard") {
-                gameEnd = false;
-                gameStart = true;
-                rival = mode.value == "vs Bot" ? CPU : Player_2;
-                startTimer();
-                updateGraph();
-                showInstructions();
-              } else
-                showStartError();
+              if (mode.value != "Online") {
+                if (level.value == "Easy" || level.value == "Hard") {
+                  gameEnd = false;
+                  gameStart = true;
+                  rival = mode.value == "vs Bot" ? CPU : Player_2;
+                  startTimer();
+                  updateGraph();
+                  showInstructions();
+                } else {
+                  showStartError();
+                }
+              } else {
+                // A lógica de início para o modo online será tratada
+                // quando o segundo jogador entrar na sala
+              }
             });
           },
           style: ElevatedButton.styleFrom(
-            primary: Color.fromARGB(255, 20, 17, 27),
-            onPrimary: Colors.white,
+            backgroundColor: Color.fromARGB(255, 20, 17, 27),
+            foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
           ),
           child: Text("START",
@@ -290,26 +352,29 @@ class _GamePageState extends State<GamePage> {
 
     var inputRoom = Container(
         margin: EdgeInsets.only(top: 0, left: 10, right: 10, bottom: 10),
-        width: 160,
+        width: 250,
         child: Column(
           children: [
             TextFormField(
-              decoration:
-                  const InputDecoration(hintText: 'Enter your code room'),
-              validator: (String? value) {
-                if (value == null || value.isEmpty)
-                  return 'Please enter some text';
-                return null;
-              },
+              controller: _roomController,
+              decoration: const InputDecoration(
+                  hintText: 'Enter your code room',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white))),
+              style:
+                  const TextStyle(color: Colors.white, fontFamily: 'Squarea'),
+              cursorColor: Colors.white,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               child: ElevatedButton(
                 onPressed: () {
-                  // Validate will return true if the form is valid, or false if
-                  // the form is invalid.
+                  if (_roomController.text.isNotEmpty) {
+                    _connectToWebSocket(_roomController.text);
+                  }
                 },
-                child: const Text('Submit'),
+                child: const Text('Entrar'),
               ),
             ),
           ],
@@ -317,14 +382,22 @@ class _GamePageState extends State<GamePage> {
 
     return Column(
       children: [
-        btnStart,
+        if (mode.value != "Online") btnStart,
         rowMode,
-        mode.value == "vs Bot"
-            ? rowLevel
-            : mode.value == "vs Player"
-                ? Container()
-                : rowRoom,
-        level.value.contains("Room") ? inputRoom : Container(),
+        if (mode.value == "vs Bot")
+          rowLevel
+        else if (mode.value == "Online")
+          rowRoom
+        else
+          Container(),
+        if (level.value == "Create Room" && roomId != null)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text("Código da sala: $roomId",
+                style: TextStyle(
+                    color: Colors.white, fontSize: 18, fontFamily: 'Squarea')),
+          ),
+        if (level.value == "Join Room") inputRoom,
         modalInstructions
       ],
     );
@@ -403,10 +476,10 @@ class _GamePageState extends State<GamePage> {
 
   Widget _containerPlayer(Player p1, Player p2, Responsive responsive) {
     var sizeContainer = responsive.value({
-      Breakpoints.xl: 210,
-      Breakpoints.lg: 180,
-      Breakpoints.md: 150,
-      Breakpoints.sm: 135,
+      Breakpoints.xl: 240,
+      Breakpoints.lg: 210,
+      Breakpoints.md: 180,
+      Breakpoints.sm: 150,
       Breakpoints.xs: 120
     });
     var sizeFont = responsive.value({
@@ -493,7 +566,18 @@ class _GamePageState extends State<GamePage> {
 
   Widget _edge(Grafo e, Function checkSquare, double width, double height) {
     return InkWell(
-        onTap: () {
+      onTap: () {
+        if (mode.value == "Online") {
+          if (channel != null && !e.check) {
+            final moveData = jsonEncode({
+              "action": "make_move",
+              "line": e.line,
+              "column": e.column,
+            });
+            channel!.sink.add(moveData);
+          }
+        } else {
+          // Lógica para modo offline
           setState(() {
             if (!e.check && !gameEnd && gameStart) {
               e.check = true;
@@ -502,14 +586,16 @@ class _GamePageState extends State<GamePage> {
               changeTurn();
             }
           });
-        },
-        child: Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: e.check ? Colors.white : Colors.black12,
-          ),
-        ));
+        }
+      },
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: e.check ? Colors.white : Colors.black12,
+        ),
+      ),
+    );
   }
 
   Widget _square(Grafo s) {
@@ -692,7 +778,7 @@ class _GamePageState extends State<GamePage> {
           if (!element.check) {
             if (checkAIMoveScore(element))
               possibleMovePoints.add(element);
-            else if (level == "hard" && movesW3E(element))
+            else if (level.value == "Hard" && movesW3E(element))
               mWC3E.add(element);
             else
               possibleMoves.add(element);

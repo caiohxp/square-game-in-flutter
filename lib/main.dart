@@ -15,7 +15,10 @@ class MyApp extends StatelessWidget {
       title: 'SquareO',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.green),
-      home: GamePage(),
+      routes: {
+        '/': (context) => GamePage(),
+        '/online': (context) => const CreateRoom(),
+      },
     );
   }
 }
